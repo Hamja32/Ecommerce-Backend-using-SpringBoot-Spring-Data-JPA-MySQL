@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,8 +18,9 @@ public class Product {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
 	private String name;
-	@Lob
-	private String desc;
+	// ✅ Fix - normal VARCHAR/TEXT rakho
+	@Column(name = "description", columnDefinition = "TEXT")
+	private String description;
 	private String brand;
 	private BigDecimal price;
 	private String category;
@@ -46,10 +48,16 @@ public class Product {
 	public void setImageDate(byte[] imageDate) {
 		this.imageDate = imageDate;
 	}
+	@Column(nullable = true)  
 	private String imageName;
+	
+	@Column(nullable = true)  
 	private String imageType;
+	
 	@Lob
+	@Column(columnDefinition = "LONGBLOB",nullable=true)
 	private byte[] imageDate;
+	
 	public int getId() {
 		return id;
 	}
@@ -63,10 +71,10 @@ public class Product {
 		this.name = name;
 	}
 	public String getDesc() {
-		return desc;
+		return description;
 	}
-	public void setDesc(String desc) {
-		this.desc = desc;
+	public void setDesc(String description) {
+		this.description = description;
 	}
 	public String getBrand() {
 		return brand;

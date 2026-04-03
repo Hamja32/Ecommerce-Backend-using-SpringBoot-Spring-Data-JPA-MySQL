@@ -2,6 +2,7 @@ package com.EcomProject.controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +33,16 @@ public class ProductController {
 	@Autowired
 	ProductService service;
 
+	// ✅ /products/search pehle define karo
+	@GetMapping("/products/search")
+	public ResponseEntity<List<Product>> searchProducts(@RequestParam  String keyword) {
+	    List<Product> results = service.searchProducts(keyword);
+	    if(results.isEmpty()) {
+	        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+	    }
+	    return new ResponseEntity<>(results, HttpStatus.OK);
+	}
+	
 	@GetMapping("/products")
 	public ResponseEntity<List<Product>> getAllProducts() {
 		List<Product> listProducts = service.getAllProducts();
@@ -50,31 +62,38 @@ public class ProductController {
 	//add product
 	@PostMapping("/products")
 	public ResponseEntity<?> addProduct(
-	    @RequestPart("product") Product product, // Changed name to "product"
-	    @RequestPart("imageFile") MultipartFile imageFile
+	    @RequestPart("product") Product product,
+	    @RequestPart(value = "imageFile", required = false) MultipartFile imageFile // optional!
 	) {
-		// 1. Basic Validation
-	    if (imageFile.isEmpty()) {
-	        return ResponseEntity.badRequest().body("Please upload an image.");
-	    }
 	    try {
 	        Product p = service.createProduct(product, imageFile);
 	        return new ResponseEntity<>(p, HttpStatus.CREATED);
 	    } catch (IOException e) {
-	    	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Could not save the image: " + e.getMessage());
-	    }catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body("Could not save the image: " + e.getMessage());
+	    } catch (Exception e) {
 	        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error creating product");
 	    }
 	}
-	//image getting
+	
 	@GetMapping("/products/{id}/image")
 	public ResponseEntity<byte[]> getImageByProductId(@PathVariable int id){
-		Product product = service.getProductByItsId(id).get();
-		byte[] imageFile = product.getImageDate();
-		
-		return ResponseEntity.ok().contentType(MediaType.valueOf(product.getImageType()))
-				.body(imageFile);
+	    Optional<Product> optProduct = service.getProductByItsId(id);
+	    
+	    if(optProduct.isEmpty()){
+	        return ResponseEntity.notFound().build();
+	    }
+	    
+	    Product product = optProduct.get();
+	    
+	    // Image optional hai - null hogi toh 204 return karo
+	    if(product.getImageDate() == null || product.getImageType() == null){
+	        return ResponseEntity.noContent().build();
+	    }
+	    
+	    return ResponseEntity.ok()
+	            .contentType(MediaType.valueOf(product.getImageType()))
+	            .body(product.getImageDate());
 	}
 	
 	//update the product
@@ -82,7 +101,7 @@ public class ProductController {
 	public ResponseEntity<?> updateProduct(
 	    @PathVariable int id, 
 	    @RequestPart Product product, 
-	    @RequestPart MultipartFile imageFile // imageFile can be optional
+	    @RequestPart(value = "imageFile", required = false) MultipartFile imageFile // ✅
 	) {
 	    try {
 	        Product updatedProduct = service.updateTheProduct(id, product, imageFile);

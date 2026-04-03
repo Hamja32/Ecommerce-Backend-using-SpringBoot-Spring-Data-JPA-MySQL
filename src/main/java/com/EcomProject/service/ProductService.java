@@ -22,28 +22,41 @@ public class ProductService {
 		List<Product> products = repo.findAll();
 		return products;
 	}
-
+	public List<Product> searchProducts(String keyword) {
+	    return repo.searchProducts(keyword);
+	}
 	public Optional<Product> getProductByItsId(int id) {
 		return repo.findById(id);
 	}
+	// ✅ createProduct - image optional
 	@Transactional
 	public Product createProduct(Product prod, MultipartFile imageFile) throws IOException {
-		prod.setImageName(imageFile.getOriginalFilename());
-		prod.setImageType(imageFile.getContentType());
-		prod.setImageDate(imageFile.getBytes());
-		System.out.println(prod);
-		return repo.save(prod);
+	    // Image sirf tab set karo jab diya gaya ho
+	    if(imageFile != null && !imageFile.isEmpty()){
+	        prod.setImageName(imageFile.getOriginalFilename());
+	        prod.setImageType(imageFile.getContentType());
+	        prod.setImageDate(imageFile.getBytes());
+	    }
+	    return repo.save(prod);
+	}
 	
-	}
-
 	public Product updateTheProduct(int id, Product product, MultipartFile imageFile) throws IOException {
-		Product existingProduct = repo.findById(id).get();
-		product.setImageName(imageFile.getOriginalFilename());
-		product.setImageType(imageFile.getContentType());
-		product.setImageDate(imageFile.getBytes());
-		return repo.save(product);
+	    Product existingProduct = repo.findById(id)
+	            .orElseThrow(() -> new RuntimeException("Product not found"));
+	    
+	    // ✅ Image sirf tab update karo jab nayi di gayi ho
+	    if(imageFile != null && !imageFile.isEmpty()){
+	        product.setImageName(imageFile.getOriginalFilename());
+	        product.setImageType(imageFile.getContentType());
+	        product.setImageDate(imageFile.getBytes());
+	    } else {
+	        // ✅ Purani image retain karo
+	        product.setImageName(existingProduct.getImageName());
+	        product.setImageType(existingProduct.getImageType());
+	        product.setImageDate(existingProduct.getImageDate());
+	    }
+	    return repo.save(product);
 	}
-
 	public void deleteProduct(int Pid) {
 		repo.deleteById(Pid);
 		
